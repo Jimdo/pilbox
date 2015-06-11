@@ -21,31 +21,19 @@ EXPECTED_GIF = os.path.join(DATADIR, "expected", "animated.gif")
 def write_gif(fp, sequence):
     previous = None
     for im in sequence:
+        print(im.info)
         duration = im.info['duration']
         loop = im.info['loop']
-        im = resize(im)
+        transparency = im.info['transparency']
+        im = im.copy()
         if not previous:
-            for s in getheader(im)[0] + getdata(im, duration=duration, loop=loop):
+            for s in getheader(im)[0] + getdata(im, duration=duration, loop=loop, transparency=transparency):
                 fp.write(s)
         else:
-            delta = ImageChops.subtract_modulo(im, previous)
-            bbox = delta.getbbox()
-            if bbox:
-                for s in getdata(im.crop(bbox), offset=bbox[:2], duration=duration, loop=loop):
-                    fp.write(s)
-            else:
-                pass
+            for s in getdata(im, duration=duration, loop=loop, transparency=transparency):
+                fp.write(s)
         previous = im.copy()
     fp.write(";".encode('utf-8'))
-
-
-def resize(im, width=200, height=100):
-    outfile = BytesIO()
-    im.save(outfile, 'gif')
-    image = pilbox.image.Image(outfile)
-    image.resize(width, height)
-    return image.img
-
 
 class GifTest(unittest.TestCase):
 
@@ -54,3 +42,5 @@ class GifTest(unittest.TestCase):
             image = Image.open(ANIMATED_GIF)
             frames = ImageSequence.Iterator(image)
             write_gif(fp, frames)
+
+        print(Image.open(EXPECTED_GIF).info)
